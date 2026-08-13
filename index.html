@@ -29,6 +29,8 @@
     .filter-group input, .filter-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
     .btn-filter { background-color: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; height: 42px; }
     .btn-filter:hover { background-color: #1d4ed8; }
+    .btn-reset { background-color: #64748b; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; height: 42px; }
+    .btn-reset:hover { background-color: #475569; }
 
     /* CARDS DE INDICADORES (KPIs) */
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
@@ -48,6 +50,7 @@
     .alert-error { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 14px; margin-bottom: 12px; display: none; }
     
     #loadingMsg { text-align: center; padding: 40px; font-size: 16px; color: #64748b; }
+    #noDataNotice { background: #fef3c7; color: #92400e; padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center; font-weight: 600; }
     #errorDetails { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 8px; margin-top: 16px; display: none; text-align: left; font-family: monospace; font-size: 13px; word-break: break-all; }
   </style>
 </head>
@@ -68,7 +71,7 @@
 
   <!-- NAVEGAÇÃO / MENU -->
   <nav>
-    <div class="nav-brand">🌾 Portal Gestão Rural</div>
+    <div class="nav-brand">🌾 Portal AgroTrovarelli</div>
     <ul class="nav-links">
       <li><a href="index.html">Home</a></li>
       <li><a href="consumo.html" class="active">Consumo Ração</a></li>
@@ -98,10 +101,12 @@
         </select>
       </div>
       <button class="btn-filter" onclick="aplicarFiltros()">Filtrar</button>
+      <button class="btn-reset" onclick="mostrarTodosDados()">Ver Todos</button>
     </div>
 
-    <!-- MENSAGENS -->
+    <!-- MENSAGENS DE STATUS -->
     <div id="loadingMsg">Carregando dados com segurança...</div>
+    <div id="noDataNotice">⚠️ Nenhum registro foi encontrado para o período/receita selecionados. Tente clicar em "Ver Todos".</div>
     <div id="errorDetails"></div>
 
     <!-- INDICADORES (KPIs) -->
@@ -191,11 +196,12 @@
       if (!val) return null;
       let strData = val.toString();
       if (strData.includes('T')) {
-        return new Date(strData);
+        let d = new Date(strData);
+        return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
       }
       const partes = strData.split('/');
       if (partes.length === 3) {
-        return new Date(partes[2], partes[1] - 1, partes[0]);
+        return new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
       }
       return new Date(strData);
     }
@@ -208,7 +214,14 @@
       return `${dia}/${mes}/${ano}`;
     }
 
-    // BUSCAR VALOR DA COLUNA INDEPENDENTE DE ESPAÇOS / MAIÚSCULAS
+    function toInputDateStr(dateObj) {
+      if (!dateObj || isNaN(dateObj.getTime())) return '';
+      const ano = dateObj.getFullYear();
+      const mes = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dia = String(dateObj.getDate()).padStart(2, '0');
+      return `${ano}-${mes}-${dia}`;
+    }
+
     function getVal(obj, keyName) {
       if (!obj) return '';
       if (obj[keyName] !== undefined) return obj[keyName];
@@ -241,7 +254,6 @@
           throw new Error("A planilha retornou vazia ou o formato de dados não é uma lista.");
         }
 
-        // MAPEAMENTO DAS COLUNAS DA SUA PLANILHA:
         dadosCompletos = data.map(item => {
           let dtObj = parseDataBR(getVal(item, 'DATA'));
           return {
@@ -258,8 +270,13 @@
         }).filter(i => i.dataObj && !isNaN(i.dataObj.getTime()));
 
         if (dadosCompletos.length === 0) {
-          throw new Error("Não foi possível ler as datas da coluna 'DATA'. Verifique se há registros na planilha.");
+          throw new Error("Não foi possível identificar registros com datas válidas na coluna 'DATA'.");
         }
+
+        // AUTO-CONFIGURAR DATAS INICIAL E FINAL COM BASE NA PLANILHA
+        const datasOrdenadas = dadosCompletos.map(d => d.dataObj).sort((a, b) => a - b);
+        document.getElementById('startDate').value = toInputDateStr(datasOrdenadas[0]);
+        document.getElementById('endDate').value = toInputDateStr(datasOrdenadas[datasOrdenadas.length - 1]);
 
         preencherFiltroReceita();
         loading.style.display = 'none';
@@ -303,8 +320,22 @@
         return true;
       });
 
+      const notice = document.getElementById('noDataNotice');
+      if (dadosFiltrados.length === 0) {
+        notice.style.display = 'block';
+      } else {
+        notice.style.display = 'none';
+      }
+
       atualizarKPIs(dadosFiltrados);
       atualizarGraficos(dadosFiltrados);
+    }
+
+    function mostrarTodosDados() {
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+      document.getElementById('receitaFilter').value = 'TODAS';
+      aplicarFiltros();
     }
 
     function atualizarKPIs(dados) {
