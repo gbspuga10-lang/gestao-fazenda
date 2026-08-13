@@ -47,12 +47,13 @@
     .pin-input { font-size: 24px; text-align: center; letter-spacing: 8px; width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; margin: 16px 0; }
     .alert-error { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 14px; margin-bottom: 12px; display: none; }
     
-    #loadingMsg { text-align: center; padding: 40px; font-size: 18px; color: #64748b; }
+    #loadingMsg { text-align: center; padding: 40px; font-size: 16px; color: #64748b; }
+    #errorDetails { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 8px; margin-top: 16px; display: none; text-align: left; font-family: monospace; font-size: 13px; word-break: break-all; }
   </style>
 </head>
 <body>
 
-  <!-- TELA DE AUTENTICAÇÃO (SÓ APARECE NO PRIMEIRA ACESSO) -->
+  <!-- TELA DE AUTENTICAÇÃO -->
   <div id="loginOverlay" class="login-overlay">
     <div class="login-card">
       <h2 style="color: #1e3a8a; margin-bottom: 8px;">Acesso Restrito</h2>
@@ -74,7 +75,7 @@
     </ul>
   </nav>
 
-  <!-- CONTEÚDO PRINCIPAL (BLOQUEADO ATÉ AUTENTICAR) -->
+  <!-- CONTEÚDO PRINCIPAL -->
   <div class="container" id="mainContent" style="display: none;">
     <div class="header-title">
       <h1>Dashboard - Consumo de Ração</h1>
@@ -99,10 +100,11 @@
       <button class="btn-filter" onclick="aplicarFiltros()">Filtrar</button>
     </div>
 
-    <!-- MENSAGEM DE CARREGAMENTO -->
+    <!-- MENSAGENS -->
     <div id="loadingMsg">Carregando dados com segurança...</div>
+    <div id="errorDetails"></div>
 
-    <!-- METRICAS (KPIs) -->
+    <!-- INDICADORES (KPIs) -->
     <div class="kpi-grid" id="kpiSection" style="display: none;">
       <div class="kpi-card" style="border-color: #3b82f6;">
         <div class="kpi-title">Qtd. Animais (Soma)</div>
@@ -126,7 +128,7 @@
       </div>
     </div>
 
-    <!-- SEÇÃO DOS GRÁFICOS -->
+    <!-- GRÁFICOS -->
     <div class="charts-grid" id="chartsSection" style="display: none;">
       <div class="chart-card">
         <h3>Evolução Diária do Consumo (KG)</h3>
@@ -141,15 +143,15 @@
   </div>
 
   <script>
-    // CONFIGURAÇÕES
+    // CONFIGURAÇÕES DE CONEXÃO E SEGURANÇA
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqxd3WJ5OPagY6Gx7OYT6_o7KoV1Gpo2KBQUjzeHeP8-d9cQoCilsks5XTXql9GMPR/exec"; 
-    const SENHA_CORRETA = "2026"; // <--- ALTERE A SENHA DO PORTAL AQUI
+    const SENHA_CORRETA = "2026"; 
 
     let dadosCompletos = [];
     let chartConsumoInstance = null;
     let chartCustoInstance = null;
 
-    // GERENCIAMENTO DE SEGURANÇA / ATIVAÇÃO
+    // GERENCIAMENTO DE LOGIN NO DISPOSITIVO
     const loginOverlay = document.getElementById('loginOverlay');
     const mainContent = document.getElementById('mainContent');
     const loginForm = document.getElementById('loginForm');
@@ -179,7 +181,7 @@
     }
 
     function parseNumberBR(val) {
-      if (!val) return 0;
+      if (val === undefined || val === null || val === '') return 0;
       if (typeof val === 'number') return val;
       let cleaned = val.toString().replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.').trim();
       return parseFloat(cleaned) || 0;
@@ -188,7 +190,6 @@
     function parseDataBR(val) {
       if (!val) return null;
       let strData = val.toString();
-      // Trata formato ISO / Data do Apps Script
       if (strData.includes('T')) {
         return new Date(strData);
       }
@@ -207,36 +208,70 @@
       return `${dia}/${mes}/${ano}`;
     }
 
-    // BUSCA DADOS VIA APPS SCRIPT (SEM PUBLICAR PLANILHA NA WEB)
+    // BUSCAR VALOR DA COLUNA INDEPENDENTE DE ESPAÇOS / MAIÚSCULAS
+    function getVal(obj, keyName) {
+      if (!obj) return '';
+      if (obj[keyName] !== undefined) return obj[keyName];
+      
+      const targetKey = keyName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+      for (let k in obj) {
+        const currentKey = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+        if (currentKey === targetKey) return obj[k];
+      }
+      return '';
+    }
+
     async function carregarDados() {
+      const loading = document.getElementById('loadingMsg');
+      const errorDiv = document.getElementById('errorDetails');
+      
       try {
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("SUA_URL_DO_WEB_APP")) {
+          throw new Error("A variável APPS_SCRIPT_URL não foi preenchida com o link do seu Web App.");
+        }
+
         const response = await fetch(APPS_SCRIPT_URL);
+        if (!response.ok) {
+          throw new Error(`Falha HTTP ao acessar Apps Script: ${response.status} ${response.statusText}`);
+        }
+
         const data = await response.json();
 
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error("A planilha retornou vazia ou o formato de dados não é uma lista.");
+        }
+
+        // MAPEAMENTO DAS COLUNAS DA SUA PLANILHA:
         dadosCompletos = data.map(item => {
-          let dtObj = parseDataBR(item['Data']);
+          let dtObj = parseDataBR(getVal(item, 'DATA'));
           return {
             dataStr: formatarDataExibicao(dtObj),
             dataObj: dtObj,
-            qtdKg: parseNumberBR(item['Quantidade Ração KG']),
-            animais: parseNumberBR(item['Quantidade Animais']),
-            consumoPorAnimal: parseNumberBR(item['Consumo por Animal KG']),
-            numeroReceita: (item['Número Receita'] || '').toString().trim(),
-            custoReceita: parseNumberBR(item['Custo Receira R$/KG']),
-            custoPorAnimal: parseNumberBR(item['Custo por Animal R$']),
-            custoTotal: parseNumberBR(item['Custo Total R$'])
+            qtdKg: parseNumberBR(getVal(item, 'Quantidade RAÇÃO Kg')),
+            animais: parseNumberBR(getVal(item, 'Quantidade Animais')),
+            consumoPorAnimal: parseNumberBR(getVal(item, 'Consumo por Animal KG')),
+            numeroReceita: (getVal(item, 'Número Receita') || '').toString().trim(),
+            custoReceita: parseNumberBR(getVal(item, 'Custo Receita R$/KG')),
+            custoPorAnimal: parseNumberBR(getVal(item, 'Custo por Animal R$')),
+            custoTotal: parseNumberBR(getVal(item, 'Custo Total R$'))
           };
         }).filter(i => i.dataObj && !isNaN(i.dataObj.getTime()));
 
+        if (dadosCompletos.length === 0) {
+          throw new Error("Não foi possível ler as datas da coluna 'DATA'. Verifique se há registros na planilha.");
+        }
+
         preencherFiltroReceita();
-        document.getElementById('loadingMsg').style.display = 'none';
+        loading.style.display = 'none';
         document.getElementById('kpiSection').style.display = 'grid';
         document.getElementById('chartsSection').style.display = 'grid';
 
         aplicarFiltros();
       } catch (err) {
-        console.error(err);
-        document.getElementById('loadingMsg').innerText = "Erro ao carregar dados. Verifique o link do Apps Script.";
+        console.error("Erro Dashboard:", err);
+        loading.innerText = "❌ Erro ao carregar dados do Dashboard.";
+        errorDiv.style.display = 'block';
+        errorDiv.innerText = "Detalhe do Erro: " + err.message;
       }
     }
 
