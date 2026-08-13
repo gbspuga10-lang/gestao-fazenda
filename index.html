@@ -8,48 +8,50 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: #f1f5f9; color: #0f172a; min-height: 100vh; }
+    body { background-color: #f0fdf4; color: #1e293b; min-height: 100vh; }
     
     /* NAV / MENU */
-    nav { background-color: #1e3a8a; color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    nav { background-color: #065f46; color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .nav-brand { font-size: 18px; font-weight: bold; }
     .nav-links { display: flex; gap: 20px; list-style: none; }
-    .nav-links a { color: #cbd5e1; text-decoration: none; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
-    .nav-links a:hover, .nav-links a.active { color: white; background-color: #1e40af; }
+    .nav-links a { color: #a7f3d0; text-decoration: none; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
+    .nav-links a:hover, .nav-links a.active { color: white; background-color: #047857; }
 
     /* CONTAINER PRINCIPAL */
     .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
     .header-title { margin-bottom: 20px; }
-    .header-title h1 { color: #1e3a8a; font-size: 24px; }
+    .header-title h1 { color: #065f46; font-size: 24px; }
     
     /* FILTROS */
-    .filters-card { background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+    .filters-card { background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #d1fae5; margin-bottom: 24px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
     .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
-    .filter-group label { font-size: 13px; font-weight: 600; color: #475569; }
-    .filter-group input, .filter-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
-    .btn-filter { background-color: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; height: 42px; }
-    .btn-filter:hover { background-color: #1d4ed8; }
-    .btn-reset { background-color: #64748b; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; height: 42px; }
-    .btn-reset:hover { background-color: #475569; }
+    .filter-group label { font-size: 13px; font-weight: 600; color: #047857; }
+    .filter-group input, .filter-group select { padding: 10px; border: 1px solid #a7f3d0; border-radius: 8px; font-size: 14px; outline: none; background-color: #f9fafb; }
+    .filter-group input:focus, .filter-group select:focus { border-color: #059669; background-color: #fff; }
+    .btn-filter { background-color: #059669; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; height: 42px; transition: 0.2s; }
+    .btn-filter:hover { background-color: #047857; }
+    .btn-reset { background-color: #4b5563; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; height: 42px; transition: 0.2s; }
+    .btn-reset:hover { background-color: #374151; }
 
     /* CARDS DE INDICADORES (KPIs) */
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .kpi-card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid #2563eb; }
-    .kpi-title { font-size: 13px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
-    .kpi-value { font-size: 22px; font-weight: bold; color: #0f172a; }
+    .kpi-card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #d1fae5; border-left: 5px solid #059669; }
+    .kpi-title { font-size: 13px; font-weight: 600; color: #047857; text-transform: uppercase; margin-bottom: 8px; }
+    .kpi-value { font-size: 22px; font-weight: bold; color: #065f46; }
 
     /* GRÁFICOS */
     .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; }
-    .chart-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .chart-card h3 { font-size: 16px; color: #1e3a8a; margin-bottom: 16px; }
+    .chart-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #d1fae5; }
+    .chart-card h3 { font-size: 16px; color: #065f46; margin-bottom: 16px; }
 
     /* TELA DE LOGIN / ATIVAÇÃO */
-    .login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f1f5f9; display: flex; justify-content: center; align-items: center; z-index: 999; }
-    .login-card { background: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-    .pin-input { font-size: 24px; text-align: center; letter-spacing: 8px; width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; margin: 16px 0; }
+    .login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f0fdf4; display: flex; justify-content: center; align-items: center; z-index: 999; }
+    .login-card { background: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #a7f3d0; width: 100%; max-width: 400px; text-align: center; }
+    .pin-input { font-size: 24px; text-align: center; letter-spacing: 8px; width: 100%; padding: 12px; border: 1px solid #a7f3d0; border-radius: 8px; margin: 16px 0; outline: none; }
+    .pin-input:focus { border-color: #059669; }
     .alert-error { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 14px; margin-bottom: 12px; display: none; }
     
-    #loadingMsg { text-align: center; padding: 40px; font-size: 16px; color: #64748b; }
+    #loadingMsg { text-align: center; padding: 40px; font-size: 16px; color: #047857; }
     #noDataNotice { background: #fef3c7; color: #92400e; padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center; font-weight: 600; }
     #errorDetails { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 8px; margin-top: 16px; display: none; text-align: left; font-family: monospace; font-size: 13px; word-break: break-all; }
   </style>
@@ -59,8 +61,8 @@
   <!-- TELA DE AUTENTICAÇÃO -->
   <div id="loginOverlay" class="login-overlay">
     <div class="login-card">
-      <h2 style="color: #1e3a8a; margin-bottom: 8px;">Acesso Restrito</h2>
-      <p style="color: #64748b; font-size: 14px;">Digite a senha para liberar este dispositivo.</p>
+      <h2 style="color: #065f46; margin-bottom: 8px;">Acesso Restrito</h2>
+      <p style="color: #047857; font-size: 14px;">Digite a senha para liberar este dispositivo.</p>
       <div id="loginError" class="alert-error">Senha incorreta!</div>
       <form id="loginForm">
         <input type="password" id="senha" class="pin-input" placeholder="****" inputmode="numeric" required>
@@ -111,23 +113,23 @@
 
     <!-- INDICADORES (KPIs) -->
     <div class="kpi-grid" id="kpiSection" style="display: none;">
-      <div class="kpi-card" style="border-color: #3b82f6;">
-        <div class="kpi-title">Qtd. Animais (Soma)</div>
+      <div class="kpi-card" style="border-color: #059669;">
+        <div class="kpi-title">QTD Alimentação por Animal</div>
         <div class="kpi-value" id="kpiAnimais">0</div>
       </div>
       <div class="kpi-card" style="border-color: #10b981;">
         <div class="kpi-title">Qtd. Ração (KG)</div>
         <div class="kpi-value" id="kpiKg">0 KG</div>
       </div>
-      <div class="kpi-card" style="border-color: #f59e0b;">
+      <div class="kpi-card" style="border-color: #34d399;">
         <div class="kpi-title">Consumo Médio KG/Animal</div>
         <div class="kpi-value" id="kpiConsumoMedio">0 KG</div>
       </div>
-      <div class="kpi-card" style="border-color: #8b5cf6;">
+      <div class="kpi-card" style="border-color: #047857;">
         <div class="kpi-title">Custo Médio por Animal</div>
         <div class="kpi-value" id="kpiCustoMedio">R$ 0,00</div>
       </div>
-      <div class="kpi-card" style="border-color: #ef4444;">
+      <div class="kpi-card" style="border-color: #065f46;">
         <div class="kpi-title">Custo Total R$</div>
         <div class="kpi-value" id="kpiCustoTotal">R$ 0,00</div>
       </div>
@@ -380,8 +382,8 @@
           datasets: [{
             label: 'Ração (KG)',
             data: dataKg,
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            borderColor: '#059669',
+            backgroundColor: 'rgba(5, 150, 105, 0.1)',
             fill: true,
             tension: 0.3
           }]
@@ -398,7 +400,7 @@
           datasets: [{
             label: 'Custo Total (R$)',
             data: dataCusto,
-            backgroundColor: '#ef4444',
+            backgroundColor: '#10b981',
             borderRadius: 6
           }]
         },
