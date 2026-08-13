@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Consumo de Ração</title>
+  <!-- Chart.js para os Gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #f1f5f9; color: #0f172a; min-height: 100vh; }
+    
+    /* NAV / MENU */
+    nav { background-color: #1e3a8a; color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .nav-brand { font-size: 18px; font-weight: bold; }
+    .nav-links { display: flex; gap: 20px; list-style: none; }
+    .nav-links a { color: #cbd5e1; text-decoration: none; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
+    .nav-links a:hover, .nav-links a.active { color: white; background-color: #1e40af; }
+
+    /* CONTAINER PRINCIPAL */
+    .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .header-title { margin-bottom: 20px; }
+    .header-title h1 { color: #1e3a8a; font-size: 24px; }
+    
+    /* FILTROS */
+    .filters-card { background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
+    .filter-group label { font-size: 13px; font-weight: 600; color: #475569; }
+    .filter-group input, .filter-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
+    .btn-filter { background-color: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; height: 42px; }
+    .btn-filter:hover { background-color: #1d4ed8; }
+
+    /* CARDS DE INDICADORES (KPIs) */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid #2563eb; }
+    .kpi-title { font-size: 13px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+    .kpi-value { font-size: 22px; font-weight: bold; color: #0f172a; }
+
+    /* GRÁFICOS */
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; }
+    .chart-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .chart-card h3 { font-size: 16px; color: #1e3a8a; margin-bottom: 16px; }
+
+    /* TELA DE LOGIN / ATIVAÇÃO */
+    .login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f1f5f9; display: flex; justify-content: center; align-items: center; z-index: 999; }
+    .login-card { background: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+    .pin-input { font-size: 24px; text-align: center; letter-spacing: 8px; width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; margin: 16px 0; }
+    .alert-error { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 14px; margin-bottom: 12px; display: none; }
+    
+    #loadingMsg { text-align: center; padding: 40px; font-size: 18px; color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <!-- TELA DE AUTENTICAÇÃO (SÓ APARECE NO PRIMEIRA ACESSO) -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <h2 style="color: #1e3a8a; margin-bottom: 8px;">Acesso Restrito</h2>
+      <p style="color: #64748b; font-size: 14px;">Digite a senha para liberar este dispositivo.</p>
+      <div id="loginError" class="alert-error">Senha incorreta!</div>
+      <form id="loginForm">
+        <input type="password" id="senha" class="pin-input" placeholder="****" inputmode="numeric" required>
+        <button type="submit" class="btn-filter" style="width: 100%;">Ativar Dispositivo</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- NAVEGAÇÃO / MENU -->
+  <nav>
+    <div class="nav-brand">🌾 Portal Gestão Rural</div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="consumo.html" class="active">Consumo Ração</a></li>
+    </ul>
+  </nav>
+
+  <!-- CONTEÚDO PRINCIPAL (BLOQUEADO ATÉ AUTENTICAR) -->
+  <div class="container" id="mainContent" style="display: none;">
+    <div class="header-title">
+      <h1>Dashboard - Consumo de Ração</h1>
+    </div>
+
+    <!-- PAINEL DE FILTROS -->
+    <div class="filters-card">
+      <div class="filter-group">
+        <label for="startDate">Data Inicial:</label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="filter-group">
+        <label for="endDate">Data Final:</label>
+        <input type="date" id="endDate">
+      </div>
+      <div class="filter-group">
+        <label for="receitaFilter">Número Receita:</label>
+        <select id="receitaFilter">
+          <option value="TODAS">Todas as Receitas</option>
+        </select>
+      </div>
+      <button class="btn-filter" onclick="aplicarFiltros()">Filtrar</button>
+    </div>
+
+    <!-- MENSAGEM DE CARREGAMENTO -->
+    <div id="loadingMsg">Carregando dados com segurança...</div>
+
+    <!-- METRICAS (KPIs) -->
+    <div class="kpi-grid" id="kpiSection" style="display: none;">
+      <div class="kpi-card" style="border-color: #3b82f6;">
+        <div class="kpi-title">Qtd. Animais (Soma)</div>
+        <div class="kpi-value" id="kpiAnimais">0</div>
+      </div>
+      <div class="kpi-card" style="border-color: #10b981;">
+        <div class="kpi-title">Qtd. Ração (KG)</div>
+        <div class="kpi-value" id="kpiKg">0 KG</div>
+      </div>
+      <div class="kpi-card" style="border-color: #f59e0b;">
+        <div class="kpi-title">Consumo Médio KG/Animal</div>
+        <div class="kpi-value" id="kpiConsumoMedio">0 KG</div>
+      </div>
+      <div class="kpi-card" style="border-color: #8b5cf6;">
+        <div class="kpi-title">Custo Médio por Animal</div>
+        <div class="kpi-value" id="kpiCustoMedio">R$ 0,00</div>
+      </div>
+      <div class="kpi-card" style="border-color: #ef4444;">
+        <div class="kpi-title">Custo Total R$</div>
+        <div class="kpi-value" id="kpiCustoTotal">R$ 0,00</div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO DOS GRÁFICOS -->
+    <div class="charts-grid" id="chartsSection" style="display: none;">
+      <div class="chart-card">
+        <h3>Evolução Diária do Consumo (KG)</h3>
+        <canvas id="chartConsumo"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Custo Total por Dia (R$)</h3>
+        <canvas id="chartCusto"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // CONFIGURAÇÕES
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqxd3WJ5OPagY6Gx7OYT6_o7KoV1Gpo2KBQUjzeHeP8-d9cQoCilsks5XTXql9GMPR/exec"; 
+    const SENHA_CORRETA = "2026"; // <--- ALTERE A SENHA DO PORTAL AQUI
+
+    let dadosCompletos = [];
+    let chartConsumoInstance = null;
+    let chartCustoInstance = null;
+
+    // GERENCIAMENTO DE SEGURANÇA / ATIVAÇÃO
+    const loginOverlay = document.getElementById('loginOverlay');
+    const mainContent = document.getElementById('mainContent');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+
+    if (localStorage.getItem('portalAtivado') === 'true') {
+      liberarAcesso();
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const senhaInput = document.getElementById('senha').value;
+      if (senhaInput === SENHA_CORRETA) {
+        localStorage.setItem('portalAtivado', 'true');
+        loginError.style.display = 'none';
+        liberarAcesso();
+      } else {
+        loginError.style.display = 'block';
+        document.getElementById('senha').value = '';
+      }
+    });
+
+    function liberarAcesso() {
+      loginOverlay.style.display = 'none';
+      mainContent.style.display = 'block';
+      carregarDados();
+    }
+
+    function parseNumberBR(val) {
+      if (!val) return 0;
+      if (typeof val === 'number') return val;
+      let cleaned = val.toString().replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.').trim();
+      return parseFloat(cleaned) || 0;
+    }
+
+    function parseDataBR(val) {
+      if (!val) return null;
+      let strData = val.toString();
+      // Trata formato ISO / Data do Apps Script
+      if (strData.includes('T')) {
+        return new Date(strData);
+      }
+      const partes = strData.split('/');
+      if (partes.length === 3) {
+        return new Date(partes[2], partes[1] - 1, partes[0]);
+      }
+      return new Date(strData);
+    }
+
+    function formatarDataExibicao(dateObj) {
+      if (!dateObj || isNaN(dateObj.getTime())) return '';
+      const dia = String(dateObj.getDate()).padStart(2, '0');
+      const mes = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const ano = dateObj.getFullYear();
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    // BUSCA DADOS VIA APPS SCRIPT (SEM PUBLICAR PLANILHA NA WEB)
+    async function carregarDados() {
+      try {
+        const response = await fetch(APPS_SCRIPT_URL);
+        const data = await response.json();
+
+        dadosCompletos = data.map(item => {
+          let dtObj = parseDataBR(item['Data']);
+          return {
+            dataStr: formatarDataExibicao(dtObj),
+            dataObj: dtObj,
+            qtdKg: parseNumberBR(item['Quantidade Ração KG']),
+            animais: parseNumberBR(item['Quantidade Animais']),
+            consumoPorAnimal: parseNumberBR(item['Consumo por Animal KG']),
+            numeroReceita: (item['Número Receita'] || '').toString().trim(),
+            custoReceita: parseNumberBR(item['Custo Receira R$/KG']),
+            custoPorAnimal: parseNumberBR(item['Custo por Animal R$']),
+            custoTotal: parseNumberBR(item['Custo Total R$'])
+          };
+        }).filter(i => i.dataObj && !isNaN(i.dataObj.getTime()));
+
+        preencherFiltroReceita();
+        document.getElementById('loadingMsg').style.display = 'none';
+        document.getElementById('kpiSection').style.display = 'grid';
+        document.getElementById('chartsSection').style.display = 'grid';
+
+        aplicarFiltros();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('loadingMsg').innerText = "Erro ao carregar dados. Verifique o link do Apps Script.";
+      }
+    }
+
+    function preencherFiltroReceita() {
+      const select = document.getElementById('receitaFilter');
+      const receitasUnicas = [...new Set(dadosCompletos.map(d => d.numeroReceita))].filter(Boolean);
+      
+      select.innerHTML = '<option value="TODAS">Todas as Receitas</option>';
+      receitasUnicas.forEach(rec => {
+        const option = document.createElement('option');
+        option.value = rec;
+        option.textContent = `Receita ${rec}`;
+        select.appendChild(option);
+      });
+    }
+
+    function aplicarFiltros() {
+      const startVal = document.getElementById('startDate').value;
+      const endVal = document.getElementById('endDate').value;
+      const receitaVal = document.getElementById('receitaFilter').value;
+
+      const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+      const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+
+      const dadosFiltrados = dadosCompletos.filter(item => {
+        if (startDate && item.dataObj < startDate) return false;
+        if (endDate && item.dataObj > endDate) return false;
+        if (receitaVal !== 'TODAS' && item.numeroReceita !== receitaVal) return false;
+        return true;
+      });
+
+      atualizarKPIs(dadosFiltrados);
+      atualizarGraficos(dadosFiltrados);
+    }
+
+    function atualizarKPIs(dados) {
+      let somaAnimais = 0;
+      let somaKg = 0;
+      let somaConsumoAnimal = 0;
+      let somaCustoAnimal = 0;
+      let somaCustoTotal = 0;
+      let qtdRegistros = dados.length;
+
+      dados.forEach(d => {
+        somaAnimais += d.animais;
+        somaKg += d.qtdKg;
+        somaConsumoAnimal += d.consumoPorAnimal;
+        somaCustoAnimal += d.custoPorAnimal;
+        somaCustoTotal += d.custoTotal;
+      });
+
+      let mediaConsumo = qtdRegistros > 0 ? (somaConsumoAnimal / qtdRegistros) : 0;
+      let mediaCustoAnimal = qtdRegistros > 0 ? (somaCustoAnimal / qtdRegistros) : 0;
+
+      document.getElementById('kpiAnimais').innerText = somaAnimais.toLocaleString('pt-BR');
+      document.getElementById('kpiKg').innerText = somaKg.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " KG";
+      document.getElementById('kpiConsumoMedio').innerText = mediaConsumo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " KG";
+      document.getElementById('kpiCustoMedio').innerText = "R$ " + mediaCustoAnimal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('kpiCustoTotal').innerText = "R$ " + somaCustoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function atualizarGraficos(dados) {
+      dados.sort((a, b) => a.dataObj - b.dataObj);
+
+      const labels = dados.map(d => d.dataStr);
+      const dataKg = dados.map(d => d.qtdKg);
+      const dataCusto = dados.map(d => d.custoTotal);
+
+      if (chartConsumoInstance) chartConsumoInstance.destroy();
+      const ctxConsumo = document.getElementById('chartConsumo').getContext('2d');
+      chartConsumoInstance = new Chart(ctxConsumo, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Ração (KG)',
+            data: dataKg,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+
+      if (chartCustoInstance) chartCustoInstance.destroy();
+      const ctxCusto = document.getElementById('chartCusto').getContext('2d');
+      chartCustoInstance = new Chart(ctxCusto, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Custo Total (R$)',
+            data: dataCusto,
+            backgroundColor: '#ef4444',
+            borderRadius: 6
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+    }
+  </script>
+</body>
+</html>
