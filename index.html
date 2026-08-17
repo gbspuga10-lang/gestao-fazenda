@@ -150,9 +150,8 @@
   </div>
 
   <script>
-    // CONFIGURAÇÕES DE CONEXÃO E SEGURANÇA
+    // CONFIGURAÇÃO DA URL DO WEB APP
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqxd3WJ5OPagY6Gx7OYT6_o7KoV1Gpo2KBQUjzeHeP8-d9cQoCilsks5XTXql9GMPR/exec"; 
-    const SENHA_CORRETA = "2026"; 
 
     let dadosCompletos = [];
     let chartConsumoInstance = null;
@@ -164,27 +163,60 @@
     const loginForm = document.getElementById('loginForm');
     const loginError = document.getElementById('loginError');
 
-    if (localStorage.getItem('portalAtivado') === 'true') {
-      liberarAcesso();
+    // Se o dispositivo já salvou uma senha anteriormente
+    const senhaSalva = localStorage.getItem('portalSenhaToken');
+    if (senhaSalva) {
+      tentarAutenticar(senhaSalva);
     }
 
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const senhaInput = document.getElementById('senha').value;
-      if (senhaInput === SENHA_CORRETA) {
-        localStorage.setItem('portalAtivado', 'true');
-        loginError.style.display = 'none';
-        liberarAcesso();
-      } else {
-        loginError.style.display = 'block';
-        document.getElementById('senha').value = '';
-      }
+      tentarAutenticar(senhaInput);
     });
 
-    function liberarAcesso() {
-      loginOverlay.style.display = 'none';
-      mainContent.style.display = 'block';
-      carregarDados();
+    async function tentarAutenticar(senha) {
+      loginError.style.display = 'none';
+      
+      try {
+        const dados = await carregarDadosDoServidor(senha);
+        
+        // Se a resposta do Google informar erro de autorização
+        if (dados && dados.status === "error") {
+          localStorage.removeItem('portalSenhaToken');
+          loginOverlay.style.display = 'flex';
+          mainContent.style.display = 'none';
+          loginError.innerText = "Senha incorreta!";
+          loginError.style.display = 'block';
+          document.getElementById('senha').value = '';
+          return;
+        }
+
+        // Senha válida: grava autorização e libera o painel
+        localStorage.setItem('portalSenhaToken', senha);
+        loginOverlay.style.display = 'none';
+        mainContent.style.display = 'block';
+        
+        processarDadosPlanilha(dados);
+      } catch (err) {
+        console.error(err);
+        loginError.innerText = "Erro ao conectar com o servidor. Tente novamente.";
+        loginError.style.display = 'block';
+      }
+    }
+
+    async function carregarDadosDoServidor(senha) {
+      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("SUA_URL_DO_WEB_APP")) {
+        throw new Error("URL do Apps Script não foi configurada.");
+      }
+      
+      // Envia a senha como parâmetro seguro na requisição para o Google
+      const urlComSenha = `${APPS_SCRIPT_URL}?pass=${encodeURIComponent(senha)}`;
+      const response = await fetch(urlComSenha);
+      if (!response.ok) {
+        throw new Error(`Erro de rede: ${response.status}`);
+      }
+      return await response.json();
     }
 
     function parseNumberBR(val) {
@@ -236,24 +268,13 @@
       return '';
     }
 
-    async function carregarDados() {
+    function processarDadosPlanilha(data) {
       const loading = document.getElementById('loadingMsg');
       const errorDiv = document.getElementById('errorDetails');
-      
+
       try {
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("SUA_URL_DO_WEB_APP")) {
-          throw new Error("A variável APPS_SCRIPT_URL não foi preenchida com o link do seu Web App.");
-        }
-
-        const response = await fetch(APPS_SCRIPT_URL);
-        if (!response.ok) {
-          throw new Error(`Falha HTTP ao acessar Apps Script: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
         if (!Array.isArray(data) || data.length === 0) {
-          throw new Error("A planilha retornou vazia ou o formato de dados não é uma lista.");
+          throw new Error("A planilha não retornou registros.");
         }
 
         dadosCompletos = data.map(item => {
@@ -272,10 +293,9 @@
         }).filter(i => i.dataObj && !isNaN(i.dataObj.getTime()));
 
         if (dadosCompletos.length === 0) {
-          throw new Error("Não foi possível identificar registros com datas válidas na coluna 'DATA'.");
+          throw new Error("Nenhum registro com data válida foi encontrado.");
         }
 
-        // AUTO-CONFIGURAR DATAS INICIAL E FINAL COM BASE NA PLANILHA
         const datasOrdenadas = dadosCompletos.map(d => d.dataObj).sort((a, b) => a - b);
         document.getElementById('startDate').value = toInputDateStr(datasOrdenadas[0]);
         document.getElementById('endDate').value = toInputDateStr(datasOrdenadas[datasOrdenadas.length - 1]);
@@ -287,8 +307,8 @@
 
         aplicarFiltros();
       } catch (err) {
-        console.error("Erro Dashboard:", err);
-        loading.innerText = "❌ Erro ao carregar dados do Dashboard.";
+        console.error("Erro ao processar:", err);
+        loading.innerText = "❌ Ocorreu um erro ao processar os dados recebidos.";
         errorDiv.style.display = 'block';
         errorDiv.innerText = "Detalhe do Erro: " + err.message;
       }
