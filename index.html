@@ -228,6 +228,7 @@
       if (!val) return null;
       let strData = val.toString().trim();
       
+      // Trata formato DD/MM/AAAA
       const partes = strData.split('/');
       if (partes.length === 3) {
         const dia = parseInt(partes[0], 10);
@@ -236,6 +237,7 @@
         return new Date(ano, mes, dia);
       }
 
+      // Trata formato ISO / Date string
       let d = new Date(strData);
       if (!isNaN(d.getTime())) {
         return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
@@ -288,7 +290,8 @@
             dataObj: dtObj,
             qtdKg: parseNumberBR(getVal(item, 'Quantidade RAÇÃO Kg')),
             animais: parseNumberBR(getVal(item, 'Quantidade Animais')),
-            consumoPorAnimal: parseNumberBR(getVal(item, 'Consumo por Animal KG')),
+            // Mapeamento flexível para aceitar "Consumo por Animal KG" ou "Consumo por Animal Kg"
+            consumoPorAnimal: parseNumberBR(getVal(item, 'Consumo por Animal KG') || getVal(item, 'Consumo por Animal Kg')),
             numeroReceita: (getVal(item, 'Número Receita') || '').toString().trim(),
             custoReceita: parseNumberBR(getVal(item, 'Custo Receita R$/KG')),
             custoPorAnimal: parseNumberBR(getVal(item, 'Custo por Animal R$')),
