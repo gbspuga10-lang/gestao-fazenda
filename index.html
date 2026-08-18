@@ -262,14 +262,16 @@
       return `${ano}-${mes}-${dia}`;
     }
 
+    // Busca ultra flexível que tolera pequenas variações de acentuação, barras e caracteres especiais
     function getVal(obj, keyName) {
       if (!obj) return '';
       if (obj[keyName] !== undefined) return obj[keyName];
       
-      const targetKey = keyName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+      const sanitize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+      const targetKey = sanitize(keyName);
+
       for (let k in obj) {
-        const currentKey = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
-        if (currentKey === targetKey) return obj[k];
+        if (sanitize(k) === targetKey) return obj[k];
       }
       return '';
     }
@@ -290,8 +292,7 @@
             dataObj: dtObj,
             qtdKg: parseNumberBR(getVal(item, 'Quantidade RAÇÃO Kg')),
             animais: parseNumberBR(getVal(item, 'Quantidade Animais')),
-            // Mapeamento flexível para aceitar "Consumo por Animal KG" ou "Consumo por Animal Kg"
-            consumoPorAnimal: parseNumberBR(getVal(item, 'Consumo por Animal KG') || getVal(item, 'Consumo por Animal Kg')),
+            consumoPorAnimal: parseNumberBR(getVal(item, 'Consumo por Animal KG')),
             numeroReceita: (getVal(item, 'Número Receita') || '').toString().trim(),
             custoReceita: parseNumberBR(getVal(item, 'Custo Receita R$/KG')),
             custoPorAnimal: parseNumberBR(getVal(item, 'Custo por Animal R$')),
