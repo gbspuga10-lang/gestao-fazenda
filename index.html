@@ -150,7 +150,7 @@
   </div>
 
   <script>
-    // CONFIGURAÇÃO DA URL DO WEB APP
+    // CONFIGURAÇÃO DA URL DO WEB APP DO DASHBOARD
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqxd3WJ5OPagY6Gx7OYT6_o7KoV1Gpo2KBQUjzeHeP8-d9cQoCilsks5XTXql9GMPR/exec"; 
 
     let dadosCompletos = [];
@@ -228,16 +228,24 @@
 
     function parseDataBR(val) {
       if (!val) return null;
-      let strData = val.toString();
-      if (strData.includes('T')) {
-        let d = new Date(strData);
-        return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-      }
+      let strData = val.toString().trim();
+      
+      // Se já for DD/MM/AAAA
       const partes = strData.split('/');
       if (partes.length === 3) {
-        return new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+        const dia = parseInt(partes[0], 10);
+        const mes = parseInt(partes[1], 10) - 1;
+        const ano = parseInt(partes[2], 10);
+        return new Date(ano, mes, dia);
       }
-      return new Date(strData);
+
+      // Se for formato ISO ou Date string
+      let d = new Date(strData);
+      if (!isNaN(d.getTime())) {
+        return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      }
+
+      return null;
     }
 
     function formatarDataExibicao(dateObj) {
@@ -274,7 +282,7 @@
 
       try {
         if (!Array.isArray(data) || data.length === 0) {
-          throw new Error("A planilha não retornou registros.");
+          throw new Error("A planilha não retornou registros ou está vazia.");
         }
 
         dadosCompletos = data.map(item => {
@@ -293,7 +301,7 @@
         }).filter(i => i.dataObj && !isNaN(i.dataObj.getTime()));
 
         if (dadosCompletos.length === 0) {
-          throw new Error("Nenhum registro com data válida foi encontrado.");
+          throw new Error("Nenhum registro com data válida foi encontrado na planilha.");
         }
 
         const datasOrdenadas = dadosCompletos.map(d => d.dataObj).sort((a, b) => a - b);
