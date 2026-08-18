@@ -162,7 +162,6 @@
     const loginForm = document.getElementById('loginForm');
     const loginError = document.getElementById('loginError');
 
-    // Se o dispositivo já salvou uma senha anteriormente
     const senhaSalva = localStorage.getItem('portalSenhaToken');
     if (senhaSalva) {
       tentarAutenticar(senhaSalva);
@@ -180,7 +179,6 @@
       try {
         const dados = await carregarDadosDoServidor(senha);
         
-        // Se a resposta do Google informar erro de autorização
         if (dados && dados.status === "error") {
           localStorage.removeItem('portalSenhaToken');
           loginOverlay.style.display = 'flex';
@@ -191,7 +189,6 @@
           return;
         }
 
-        // Senha válida: grava autorização e libera o painel
         localStorage.setItem('portalSenhaToken', senha);
         loginOverlay.style.display = 'none';
         mainContent.style.display = 'block';
@@ -209,7 +206,8 @@
         throw new Error("URL do Apps Script não foi configurada.");
       }
       
-      const urlComSenha = `${APPS_SCRIPT_URL}?pass=${encodeURIComponent(senha)}`;
+      // ADICIONADO &mode=dash PARA IDENTIFICAR QUE É O DASHBOARD SOLICITANDO OS DADOS
+      const urlComSenha = `${APPS_SCRIPT_URL}?pass=${encodeURIComponent(senha)}&mode=dash`;
       const response = await fetch(urlComSenha);
       if (!response.ok) {
         throw new Error(`Erro de rede: ${response.status}`);
@@ -228,7 +226,6 @@
       if (!val) return null;
       let strData = val.toString().trim();
       
-      // Trata formato DD/MM/AAAA
       const partes = strData.split('/');
       if (partes.length === 3) {
         const dia = parseInt(partes[0], 10);
@@ -237,7 +234,6 @@
         return new Date(ano, mes, dia);
       }
 
-      // Trata formato ISO / Date string
       let d = new Date(strData);
       if (!isNaN(d.getTime())) {
         return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
@@ -262,7 +258,6 @@
       return `${ano}-${mes}-${dia}`;
     }
 
-    // Busca ultra flexível que tolera pequenas variações de acentuação, barras e caracteres especiais
     function getVal(obj, keyName) {
       if (!obj) return '';
       if (obj[keyName] !== undefined) return obj[keyName];
