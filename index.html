@@ -75,8 +75,7 @@
   <nav>
     <div class="nav-brand">🌾 Portal AgroTrovarelli</div>
     <ul class="nav-links">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="consumo.html" class="active">Consumo Ração</a></li>
+      <li><a href="index.html" class="active">Consumo Ração</a></li>
     </ul>
   </nav>
 
@@ -210,7 +209,6 @@
         throw new Error("URL do Apps Script não foi configurada.");
       }
       
-      // Envia a senha como parâmetro na requisição para o Google
       const urlComSenha = `${APPS_SCRIPT_URL}?pass=${encodeURIComponent(senha)}`;
       const response = await fetch(urlComSenha);
       if (!response.ok) {
@@ -230,7 +228,6 @@
       if (!val) return null;
       let strData = val.toString().trim();
       
-      // Trata formato DD/MM/AAAA
       const partes = strData.split('/');
       if (partes.length === 3) {
         const dia = parseInt(partes[0], 10);
@@ -239,7 +236,6 @@
         return new Date(ano, mes, dia);
       }
 
-      // Trata formato ISO / Date string
       let d = new Date(strData);
       if (!isNaN(d.getTime())) {
         return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
