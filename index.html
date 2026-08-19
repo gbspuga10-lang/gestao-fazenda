@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Consumo de Ração</title>
+  <title>Dashboard - Gestão Agro</title>
   <!-- Chart.js para os Gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -13,8 +13,8 @@
     /* NAV / MENU */
     nav { background-color: #065f46; color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .nav-brand { font-size: 18px; font-weight: bold; }
-    .nav-links { display: flex; gap: 20px; list-style: none; }
-    .nav-links a { color: #a7f3d0; text-decoration: none; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
+    .nav-links { display: flex; gap: 12px; list-style: none; }
+    .nav-links a { color: #a7f3d0; text-decoration: none; font-weight: 600; padding: 8px 16px; border-radius: 6px; transition: 0.2s; cursor: pointer; }
     .nav-links a:hover, .nav-links a.active { color: white; background-color: #047857; }
 
     /* CONTAINER PRINCIPAL */
@@ -52,7 +52,7 @@
     .alert-error { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 14px; margin-bottom: 12px; display: none; }
     
     #loadingMsg { text-align: center; padding: 40px; font-size: 16px; color: #047857; }
-    #noDataNotice { background: #fef3c7; color: #92400e; padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center; font-weight: 600; }
+    .noDataNotice { background: #fef3c7; color: #92400e; padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center; font-weight: 600; }
     #errorDetails { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 8px; margin-top: 16px; display: none; text-align: left; font-family: monospace; font-size: 13px; word-break: break-all; }
   </style>
 </head>
@@ -75,88 +75,176 @@
   <nav>
     <div class="nav-brand">🌾 Portal AgroTrovarelli</div>
     <ul class="nav-links">
-      <li><a href="index.html" class="active">Consumo Ração</a></li>
+      <li><a id="navRacao" class="active" onclick="trocarAba('racao')">Consumo Ração</a></li>
+      <li><a id="navMov" onclick="trocarAba('movimentacoes')">Movimentações</a></li>
     </ul>
   </nav>
 
   <!-- CONTEÚDO PRINCIPAL -->
   <div class="container" id="mainContent" style="display: none;">
-    <div class="header-title">
-      <h1>Dashboard - Consumo de Ração</h1>
-    </div>
-
-    <!-- PAINEL DE FILTROS -->
-    <div class="filters-card">
-      <div class="filter-group">
-        <label for="startDate">Data Inicial:</label>
-        <input type="date" id="startDate">
-      </div>
-      <div class="filter-group">
-        <label for="endDate">Data Final:</label>
-        <input type="date" id="endDate">
-      </div>
-      <div class="filter-group">
-        <label for="receitaFilter">Número Receita:</label>
-        <select id="receitaFilter">
-          <option value="TODAS">Todas as Receitas</option>
-        </select>
-      </div>
-      <button class="btn-filter" onclick="aplicarFiltros()">Filtrar</button>
-      <button class="btn-reset" onclick="mostrarTodosDados()">Ver Todos</button>
-    </div>
-
-    <!-- MENSAGENS DE STATUS -->
     <div id="loadingMsg">Carregando dados com segurança...</div>
-    <div id="noDataNotice">⚠️ Nenhum registro foi encontrado para o período/receita selecionados. Tente clicar em "Ver Todos".</div>
     <div id="errorDetails"></div>
 
-    <!-- INDICADORES (KPIs) -->
-    <div class="kpi-grid" id="kpiSection" style="display: none;">
-      <div class="kpi-card" style="border-color: #059669;">
-        <div class="kpi-title">QTD Alimentação por Animal</div>
-        <div class="kpi-value" id="kpiAnimais">0</div>
+    <!-- ================= SEÇÃO: CONSUMO RAÇÃO ================= -->
+    <div id="sectionRacao">
+      <div class="header-title">
+        <h1>Dashboard - Consumo de Ração</h1>
       </div>
-      <div class="kpi-card" style="border-color: #10b981;">
-        <div class="kpi-title">Qtd. Ração (KG)</div>
-        <div class="kpi-value" id="kpiKg">0 KG</div>
+
+      <!-- FILTROS RAÇÃO -->
+      <div class="filters-card">
+        <div class="filter-group">
+          <label for="startDateRacao">Data Inicial:</label>
+          <input type="date" id="startDateRacao">
+        </div>
+        <div class="filter-group">
+          <label for="endDateRacao">Data Final:</label>
+          <input type="date" id="endDateRacao">
+        </div>
+        <div class="filter-group">
+          <label for="receitaFilter">Número Receita:</label>
+          <select id="receitaFilter">
+            <option value="TODAS">Todas as Receitas</option>
+          </select>
+        </div>
+        <button class="btn-filter" onclick="aplicarFiltrosRacao()">Filtrar</button>
+        <button class="btn-reset" onclick="mostrarTodosRacao()">Ver Todos</button>
       </div>
-      <div class="kpi-card" style="border-color: #34d399;">
-        <div class="kpi-title">Consumo Médio KG/Animal</div>
-        <div class="kpi-value" id="kpiConsumoMedio">0 KG</div>
+
+      <div id="noDataNoticeRacao" class="noDataNotice">⚠️ Nenhum registro de Ração foi encontrado para os filtros selecionados.</div>
+
+      <!-- KPIs RAÇÃO -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-title">QTD Alimentação por Animal</div>
+          <div class="kpi-value" id="kpiAnimais">0</div>
+        </div>
+        <div class="kpi-card" style="border-color: #10b981;">
+          <div class="kpi-title">Qtd. Ração (KG)</div>
+          <div class="kpi-value" id="kpiKg">0 KG</div>
+        </div>
+        <div class="kpi-card" style="border-color: #34d399;">
+          <div class="kpi-title">Consumo Médio KG/Animal</div>
+          <div class="kpi-value" id="kpiConsumoMedio">0 KG</div>
+        </div>
+        <div class="kpi-card" style="border-color: #047857;">
+          <div class="kpi-title">Custo Médio por Animal</div>
+          <div class="kpi-value" id="kpiCustoMedio">R$ 0,00</div>
+        </div>
+        <div class="kpi-card" style="border-color: #065f46;">
+          <div class="kpi-title">Custo Total R$</div>
+          <div class="kpi-value" id="kpiCustoTotal">R$ 0,00</div>
+        </div>
       </div>
-      <div class="kpi-card" style="border-color: #047857;">
-        <div class="kpi-title">Custo Médio por Animal</div>
-        <div class="kpi-value" id="kpiCustoMedio">R$ 0,00</div>
-      </div>
-      <div class="kpi-card" style="border-color: #065f46;">
-        <div class="kpi-title">Custo Total R$</div>
-        <div class="kpi-value" id="kpiCustoTotal">R$ 0,00</div>
+
+      <!-- GRÁFICOS RAÇÃO -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Evolução Diária do Consumo (KG)</h3>
+          <canvas id="chartConsumo"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Custo Total por Dia (R$)</h3>
+          <canvas id="chartCusto"></canvas>
+        </div>
       </div>
     </div>
 
-    <!-- GRÁFICOS -->
-    <div class="charts-grid" id="chartsSection" style="display: none;">
-      <div class="chart-card">
-        <h3>Evolução Diária do Consumo (KG)</h3>
-        <canvas id="chartConsumo"></canvas>
+    <!-- ================= SEÇÃO: MOVIMENTAÇÕES ================= -->
+    <div id="sectionMov" style="display: none;">
+      <div class="header-title">
+        <h1>Dashboard - Movimentações de Animais</h1>
       </div>
-      <div class="chart-card">
-        <h3>Custo Total por Dia (R$)</h3>
-        <canvas id="chartCusto"></canvas>
+
+      <!-- FILTROS MOVIMENTAÇÕES -->
+      <div class="filters-card">
+        <div class="filter-group">
+          <label for="startDateMov">Data Inicial:</label>
+          <input type="date" id="startDateMov">
+        </div>
+        <div class="filter-group">
+          <label for="endDateMov">Data Final:</label>
+          <input type="date" id="endDateMov">
+        </div>
+        <div class="filter-group">
+          <label for="tipoMovFilter">Tipo de Movimento:</label>
+          <select id="tipoMovFilter">
+            <option value="TODOS">Todos os Movimentos</option>
+          </select>
+        </div>
+        <button class="btn-filter" onclick="aplicarFiltrosMov()">Filtrar</button>
+        <button class="btn-reset" onclick="mostrarTodosMov()">Ver Todos</button>
+      </div>
+
+      <div id="noDataNoticeMov" class="noDataNotice">⚠️ Nenhum registro de Movimentação foi encontrado para os filtros selecionados.</div>
+
+      <!-- KPIs MOVIMENTAÇÕES -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-title">Total Animais Movimentados</div>
+          <div class="kpi-value" id="kpiMovAnimais">0</div>
+        </div>
+        <div class="kpi-card" style="border-color: #10b981;">
+          <div class="kpi-title">Peso Médio (@ / Animal)</div>
+          <div class="kpi-value" id="kpiMovPeso">0,00 @</div>
+        </div>
+        <div class="kpi-card" style="border-color: #34d399;">
+          <div class="kpi-title">Preço Médio R$/@</div>
+          <div class="kpi-value" id="kpiMovPrecoAroba">R$ 0,00</div>
+        </div>
+        <div class="kpi-card" style="border-color: #047857;">
+          <div class="kpi-title">Valor Total Movimentação</div>
+          <div class="kpi-value" id="kpiMovValorTotal">R$ 0,00</div>
+        </div>
+      </div>
+
+      <!-- GRÁFICOS MOVIMENTAÇÕES -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Quantidade de Animais Movimentados por Dia</h3>
+          <canvas id="chartMovAnimais"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Valor Total da Movimentação por Dia (R$)</h3>
+          <canvas id="chartMovValor"></canvas>
+        </div>
       </div>
     </div>
 
   </div>
 
   <script>
-    // CONFIGURAÇÃO DA URL DO WEB APP DO DASHBOARD
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqxd3WJ5OPagY6Gx7OYT6_o7KoV1Gpo2KBQUjzeHeP8-d9cQoCilsks5XTXql9GMPR/exec"; 
 
-    let dadosCompletos = [];
+    let dadosRacaoCompletos = [];
+    let dadosMovCompletos = [];
+
     let chartConsumoInstance = null;
     let chartCustoInstance = null;
+    let chartMovAnimaisInstance = null;
+    let chartMovValorInstance = null;
 
-    // GERENCIAMENTO DE LOGIN NO DISPOSITIVO
+    // GERENCIAMENTO DE TABS / ABAS
+    function trocarAba(aba) {
+      const navRacao = document.getElementById('navRacao');
+      const navMov = document.getElementById('navMov');
+      const sectionRacao = document.getElementById('sectionRacao');
+      const sectionMov = document.getElementById('sectionMov');
+
+      if (aba === 'racao') {
+        navRacao.classList.add('active');
+        navMov.classList.remove('active');
+        sectionRacao.style.display = 'block';
+        sectionMov.style.display = 'none';
+      } else {
+        navMov.classList.add('active');
+        navRacao.classList.remove('active');
+        sectionMov.style.display = 'block';
+        sectionRacao.style.display = 'none';
+      }
+    }
+
+    // LOGIN
     const loginOverlay = document.getElementById('loginOverlay');
     const mainContent = document.getElementById('mainContent');
     const loginForm = document.getElementById('loginForm');
@@ -175,10 +263,8 @@
 
     async function tentarAutenticar(senha) {
       loginError.style.display = 'none';
-      
       try {
         const dados = await carregarDadosDoServidor(senha);
-        
         if (dados && dados.status === "error") {
           localStorage.removeItem('portalSenhaToken');
           loginOverlay.style.display = 'flex';
@@ -193,7 +279,7 @@
         loginOverlay.style.display = 'none';
         mainContent.style.display = 'block';
         
-        processarDadosPlanilha(dados);
+        processarDadosServidor(dados);
       } catch (err) {
         console.error(err);
         loginError.innerText = "Erro ao conectar com o servidor. Tente novamente.";
@@ -202,19 +288,13 @@
     }
 
     async function carregarDadosDoServidor(senha) {
-      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("SUA_URL_DO_WEB_APP")) {
-        throw new Error("URL do Apps Script não foi configurada.");
-      }
-      
-      // ADICIONADO &mode=dash PARA IDENTIFICAR QUE É O DASHBOARD SOLICITANDO OS DADOS
       const urlComSenha = `${APPS_SCRIPT_URL}?pass=${encodeURIComponent(senha)}&mode=dash`;
       const response = await fetch(urlComSenha);
-      if (!response.ok) {
-        throw new Error(`Erro de rede: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Erro de rede: ${response.status}`);
       return await response.json();
     }
 
+    // UTILS CONVERSÃO
     function parseNumberBR(val) {
       if (val === undefined || val === null || val === '') return 0;
       if (typeof val === 'number') return val;
@@ -225,7 +305,6 @@
     function parseDataBR(val) {
       if (!val) return null;
       let strData = val.toString().trim();
-      
       const partes = strData.split('/');
       if (partes.length === 3) {
         const dia = parseInt(partes[0], 10);
@@ -233,12 +312,8 @@
         const ano = parseInt(partes[2], 10);
         return new Date(ano, mes, dia);
       }
-
       let d = new Date(strData);
-      if (!isNaN(d.getTime())) {
-        return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-      }
-
+      if (!isNaN(d.getTime())) return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
       return null;
     }
 
@@ -261,26 +336,25 @@
     function getVal(obj, keyName) {
       if (!obj) return '';
       if (obj[keyName] !== undefined) return obj[keyName];
-      
       const sanitize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
       const targetKey = sanitize(keyName);
-
       for (let k in obj) {
         if (sanitize(k) === targetKey) return obj[k];
       }
       return '';
     }
 
-    function processarDadosPlanilha(data) {
+    // PROCESSAMENTO GERAL
+    function processarDadosServidor(data) {
       const loading = document.getElementById('loadingMsg');
       const errorDiv = document.getElementById('errorDetails');
 
       try {
-        if (!Array.isArray(data) || data.length === 0) {
-          throw new Error("A planilha não retornou registros ou está vazia.");
-        }
+        let arrayRacao = Array.isArray(data) ? data : (data.racao || []);
+        let arrayMov = data.movimentacoes || [];
 
-        dadosCompletos = data.map(item => {
+        // 1. Processa Ração
+        dadosRacaoCompletos = arrayRacao.map(item => {
           let dtObj = parseDataBR(getVal(item, 'DATA'));
           return {
             dataStr: formatarDataExibicao(dtObj),
@@ -289,26 +363,45 @@
             animais: parseNumberBR(getVal(item, 'Quantidade Animais')),
             consumoPorAnimal: parseNumberBR(getVal(item, 'Consumo por Animal KG')),
             numeroReceita: (getVal(item, 'Número Receita') || '').toString().trim(),
-            custoReceita: parseNumberBR(getVal(item, 'Custo Receita R$/KG')),
-            custoPorAnimal: parseNumberBR(getVal(item, 'Custo por Animal R$')),
-            custoTotal: parseNumberBR(getVal(item, 'Custo Total R$'))
+            custoTotal: parseNumberBR(getVal(item, 'Custo Total R$')),
+            custoPorAnimal: parseNumberBR(getVal(item, 'Custo por Animal R$'))
           };
         }).filter(i => i.dataObj && !isNaN(i.dataObj.getTime()));
 
-        if (dadosCompletos.length === 0) {
-          throw new Error("Nenhum registro com data válida foi encontrado na planilha.");
+        // 2. Processa Movimentações (Mapeamento flexível para "Peso Médio @ / Animal")
+        dadosMovCompletos = arrayMov.map(item => {
+          let dtObj = parseDataBR(getVal(item, 'Data'));
+          return {
+            dataStr: formatarDataExibicao(dtObj),
+            dataObj: dtObj,
+            movimento: (getVal(item, 'Movimento') || '').toString().trim().toUpperCase(),
+            qtdeAnimais: parseNumberBR(getVal(item, 'QTDE Animais')),
+            pesoMedio: parseNumberBR(getVal(item, 'Peso Médio @ / Animal') || getVal(item, 'Peso Médio @ / Anim')),
+            precoArroba: parseNumberBR(getVal(item, 'Preço R$/@')),
+            valorTotalAnimal: parseNumberBR(getVal(item, 'Valor Total/ Animal')),
+            valorTotalMov: parseNumberBR(getVal(item, 'Valor Total Movimentação'))
+          };
+        }).filter(i => i.dataObj && !isNaN(i.dataObj.getTime()));
+
+        // Inicializa Ração
+        if (dadosRacaoCompletos.length > 0) {
+          const datasRacao = dadosRacaoCompletos.map(d => d.dataObj).sort((a, b) => a - b);
+          document.getElementById('startDateRacao').value = toInputDateStr(datasRacao[0]);
+          document.getElementById('endDateRacao').value = toInputDateStr(datasRacao[datasRacao.length - 1]);
+          preencherFiltroReceita();
+          aplicarFiltrosRacao();
         }
 
-        const datasOrdenadas = dadosCompletos.map(d => d.dataObj).sort((a, b) => a - b);
-        document.getElementById('startDate').value = toInputDateStr(datasOrdenadas[0]);
-        document.getElementById('endDate').value = toInputDateStr(datasOrdenadas[datasOrdenadas.length - 1]);
+        // Inicializa Movimentações
+        if (dadosMovCompletos.length > 0) {
+          const datasMov = dadosMovCompletos.map(d => d.dataObj).sort((a, b) => a - b);
+          document.getElementById('startDateMov').value = toInputDateStr(datasMov[0]);
+          document.getElementById('endDateMov').value = toInputDateStr(datasMov[datasMov.length - 1]);
+          preencherFiltroTipoMov();
+          aplicarFiltrosMov();
+        }
 
-        preencherFiltroReceita();
         loading.style.display = 'none';
-        document.getElementById('kpiSection').style.display = 'grid';
-        document.getElementById('chartsSection').style.display = 'grid';
-
-        aplicarFiltros();
       } catch (err) {
         console.error("Erro ao processar:", err);
         loading.innerText = "❌ Ocorreu um erro ao processar os dados recebidos.";
@@ -317,10 +410,10 @@
       }
     }
 
+    // ================= LÓGICA: CONSUMO RAÇÃO =================
     function preencherFiltroReceita() {
       const select = document.getElementById('receitaFilter');
-      const receitasUnicas = [...new Set(dadosCompletos.map(d => d.numeroReceita))].filter(Boolean);
-      
+      const receitasUnicas = [...new Set(dadosRacaoCompletos.map(d => d.numeroReceita))].filter(Boolean);
       select.innerHTML = '<option value="TODAS">Todas as Receitas</option>';
       receitasUnicas.forEach(rec => {
         const option = document.createElement('option');
@@ -330,46 +423,36 @@
       });
     }
 
-    function aplicarFiltros() {
-      const startVal = document.getElementById('startDate').value;
-      const endVal = document.getElementById('endDate').value;
+    function aplicarFiltrosRacao() {
+      const startVal = document.getElementById('startDateRacao').value;
+      const endVal = document.getElementById('endDateRacao').value;
       const receitaVal = document.getElementById('receitaFilter').value;
 
       const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
       const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
 
-      const dadosFiltrados = dadosCompletos.filter(item => {
+      const filtrados = dadosRacaoCompletos.filter(item => {
         if (startDate && item.dataObj < startDate) return false;
         if (endDate && item.dataObj > endDate) return false;
         if (receitaVal !== 'TODAS' && item.numeroReceita !== receitaVal) return false;
         return true;
       });
 
-      const notice = document.getElementById('noDataNotice');
-      if (dadosFiltrados.length === 0) {
-        notice.style.display = 'block';
-      } else {
-        notice.style.display = 'none';
-      }
-
-      atualizarKPIs(dadosFiltrados);
-      atualizarGraficos(dadosFiltrados);
+      document.getElementById('noDataNoticeRacao').style.display = filtrados.length === 0 ? 'block' : 'none';
+      atualizarKPIsRacao(filtrados);
+      atualizarGraficosRacao(filtrados);
     }
 
-    function mostrarTodosDados() {
-      document.getElementById('startDate').value = '';
-      document.getElementById('endDate').value = '';
+    function mostrarTodosRacao() {
+      document.getElementById('startDateRacao').value = '';
+      document.getElementById('endDateRacao').value = '';
       document.getElementById('receitaFilter').value = 'TODAS';
-      aplicarFiltros();
+      aplicarFiltrosRacao();
     }
 
-    function atualizarKPIs(dados) {
-      let somaAnimais = 0;
-      let somaKg = 0;
-      let somaConsumoAnimal = 0;
-      let somaCustoAnimal = 0;
-      let somaCustoTotal = 0;
-      let qtdRegistros = dados.length;
+    function atualizarKPIsRacao(dados) {
+      let somaAnimais = 0, somaKg = 0, somaConsumoAnimal = 0, somaCustoAnimal = 0, somaCustoTotal = 0;
+      let qtd = dados.length;
 
       dados.forEach(d => {
         somaAnimais += d.animais;
@@ -379,54 +462,108 @@
         somaCustoTotal += d.custoTotal;
       });
 
-      let mediaConsumo = qtdRegistros > 0 ? (somaConsumoAnimal / qtdRegistros) : 0;
-      let mediaCustoAnimal = qtdRegistros > 0 ? (somaCustoAnimal / qtdRegistros) : 0;
-
       document.getElementById('kpiAnimais').innerText = somaAnimais.toLocaleString('pt-BR');
-      document.getElementById('kpiKg').innerText = somaKg.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " KG";
-      document.getElementById('kpiConsumoMedio').innerText = mediaConsumo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " KG";
-      document.getElementById('kpiCustoMedio').innerText = "R$ " + mediaCustoAnimal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      document.getElementById('kpiCustoTotal').innerText = "R$ " + somaCustoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('kpiKg').innerText = somaKg.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) + " KG";
+      document.getElementById('kpiConsumoMedio').innerText = (qtd > 0 ? (somaConsumoAnimal / qtd) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + " KG";
+      document.getElementById('kpiCustoMedio').innerText = "R$ " + (qtd > 0 ? (somaCustoAnimal / qtd) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      document.getElementById('kpiCustoTotal').innerText = "R$ " + somaCustoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
     }
 
-    function atualizarGraficos(dados) {
+    function atualizarGraficosRacao(dados) {
       dados.sort((a, b) => a.dataObj - b.dataObj);
-
       const labels = dados.map(d => d.dataStr);
       const dataKg = dados.map(d => d.qtdKg);
       const dataCusto = dados.map(d => d.custoTotal);
 
       if (chartConsumoInstance) chartConsumoInstance.destroy();
-      const ctxConsumo = document.getElementById('chartConsumo').getContext('2d');
-      chartConsumoInstance = new Chart(ctxConsumo, {
+      chartConsumoInstance = new Chart(document.getElementById('chartConsumo').getContext('2d'), {
         type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Ração (KG)',
-            data: dataKg,
-            borderColor: '#059669',
-            backgroundColor: 'rgba(5, 150, 105, 0.1)',
-            fill: true,
-            tension: 0.3
-          }]
-        },
+        data: { labels, datasets: [{ label: 'Ração (KG)', data: dataKg, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.1)', fill: true, tension: 0.3 }] },
         options: { responsive: true, plugins: { legend: { display: false } } }
       });
 
       if (chartCustoInstance) chartCustoInstance.destroy();
-      const ctxCusto = document.getElementById('chartCusto').getContext('2d');
-      chartCustoInstance = new Chart(ctxCusto, {
+      chartCustoInstance = new Chart(document.getElementById('chartCusto').getContext('2d'), {
         type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Custo Total (R$)',
-            data: dataCusto,
-            backgroundColor: '#10b981',
-            borderRadius: 6
-          }]
-        },
+        data: { labels, datasets: [{ label: 'Custo Total (R$)', data: dataCusto, backgroundColor: '#10b981', borderRadius: 6 }] },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+    }
+
+    // ================= LÓGICA: MOVIMENTAÇÕES =================
+    function preencherFiltroTipoMov() {
+      const select = document.getElementById('tipoMovFilter');
+      const tiposUnicos = [...new Set(dadosMovCompletos.map(d => d.movimento))].filter(Boolean);
+      select.innerHTML = '<option value="TODOS">Todos os Movimentos</option>';
+      tiposUnicos.forEach(tipo => {
+        const option = document.createElement('option');
+        option.value = tipo;
+        option.textContent = tipo;
+        select.appendChild(option);
+      });
+    }
+
+    function aplicarFiltrosMov() {
+      const startVal = document.getElementById('startDateMov').value;
+      const endVal = document.getElementById('endDateMov').value;
+      const tipoVal = document.getElementById('tipoMovFilter').value;
+
+      const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+      const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+
+      const filtrados = dadosMovCompletos.filter(item => {
+        if (startDate && item.dataObj < startDate) return false;
+        if (endDate && item.dataObj > endDate) return false;
+        if (tipoVal !== 'TODOS' && item.movimento !== tipoVal) return false;
+        return true;
+      });
+
+      document.getElementById('noDataNoticeMov').style.display = filtrados.length === 0 ? 'block' : 'none';
+      atualizarKPIsMov(filtrados);
+      atualizarGraficosMov(filtrados);
+    }
+
+    function mostrarTodosMov() {
+      document.getElementById('startDateMov').value = '';
+      document.getElementById('endDateMov').value = '';
+      document.getElementById('tipoMovFilter').value = 'TODOS';
+      aplicarFiltrosMov();
+    }
+
+    function atualizarKPIsMov(dados) {
+      let somaAnimais = 0, somaPeso = 0, somaPrecoArroba = 0, somaValorTotal = 0;
+      let qtd = dados.length;
+
+      dados.forEach(d => {
+        somaAnimais += d.qtdeAnimais;
+        somaPeso += d.pesoMedio;
+        somaPrecoArroba += d.precoArroba;
+        somaValorTotal += d.valorTotalMov;
+      });
+
+      document.getElementById('kpiMovAnimais').innerText = somaAnimais.toLocaleString('pt-BR');
+      document.getElementById('kpiMovPeso').innerText = (qtd > 0 ? (somaPeso / qtd) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + " @";
+      document.getElementById('kpiMovPrecoAroba').innerText = "R$ " + (qtd > 0 ? (somaPrecoArroba / qtd) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      document.getElementById('kpiMovValorTotal').innerText = "R$ " + somaValorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    }
+
+    function atualizarGraficosMov(dados) {
+      dados.sort((a, b) => a.dataObj - b.dataObj);
+      const labels = dados.map(d => `${d.dataStr} (${d.movimento})`);
+      const dataAnimais = dados.map(d => d.qtdeAnimais);
+      const dataValor = dados.map(d => d.valorTotalMov);
+
+      if (chartMovAnimaisInstance) chartMovAnimaisInstance.destroy();
+      chartMovAnimaisInstance = new Chart(document.getElementById('chartMovAnimais').getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Animais Movimentados', data: dataAnimais, backgroundColor: '#059669', borderRadius: 6 }] },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+
+      if (chartMovValorInstance) chartMovValorInstance.destroy();
+      chartMovValorInstance = new Chart(document.getElementById('chartMovValor').getContext('2d'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Valor Total (R$)', data: dataValor, borderColor: '#047857', backgroundColor: 'rgba(4, 120, 87, 0.1)', fill: true, tension: 0.3 }] },
         options: { responsive: true, plugins: { legend: { display: false } } }
       });
     }
