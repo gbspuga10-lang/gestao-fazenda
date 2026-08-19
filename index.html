@@ -538,13 +538,24 @@
         somaAnimais += d.qtdeAnimais;
         somaPeso += d.pesoMedio;
         somaPrecoArroba += d.precoArroba;
-        somaValorTotal += d.valorTotalMov;
+
+        let valor = Math.abs(d.valorTotalMov);
+        let tipo = d.movimento ? d.movimento.toUpperCase().trim() : '';
+
+        // Se for ENTRADA (compra) subtrai do saldo; se for SAÍDA (venda) soma
+        if (tipo.includes("ENTRADA")) {
+          somaValorTotal -= valor;
+        } else {
+          somaValorTotal += valor;
+        }
       });
 
       document.getElementById('kpiMovAnimais').innerText = somaAnimais.toLocaleString('pt-BR');
-      document.getElementById('kpiMovPeso').innerText = (qtd > 0 ? (somaPeso / qtd) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + " @";
-      document.getElementById('kpiMovPrecoAroba').innerText = "R$ " + (qtd > 0 ? (somaPrecoArroba / qtd) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-      document.getElementById('kpiMovValorTotal').innerText = "R$ " + somaValorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      document.getElementById('kpiMovPeso').innerText = (qtd > 0 ? (somaPeso / qtd) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " @";
+      document.getElementById('kpiMovPrecoAroba').innerText = "R$ " + (qtd > 0 ? (somaPrecoArroba / qtd) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      let valorFormatado = Math.abs(somaValorTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('kpiMovValorTotal').innerText = (somaValorTotal < 0 ? "- R$ " : "R$ ") + valorFormatado;
     }
 
     function atualizarGraficosMov(dados) {
